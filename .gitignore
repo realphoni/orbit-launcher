@@ -1,0 +1,24 @@
+# Personal library state, machine paths, logs, and copied Steam artwork
+/data/
+/assets/
+/tmp*/
+*.log
+
+# Generated Windows application bundles and local shortcuts
+/build/
+/dist/
+/release/
+*.spec
+*.lnk
+
+# Local screenshots may contain personal library information
+/*preview.png
+
+# Python environments and caches
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.env
+.env.*
