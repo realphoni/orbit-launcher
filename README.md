@@ -1,4 +1,4 @@
-# O R B I T™ Launcher
+# O R B I T™ Legacy
 
 A fullscreen Windows game launcher with a local library and copied Steam artwork.
 
@@ -10,7 +10,7 @@ To build a standalone Windows app, run `python -m pip install -r requirements-bu
 
 ## Installer
 
-After building the portable app, run `python build_installer.py`. The result is **release/installer/OrbitSetup.exe**, a single-file native Windows installer. Its animated setup screen lets users choose an install folder and optional Desktop and Start-menu shortcuts. The default location is `%LOCALAPPDATA%\Programs\Orbit`, so Orbit can save its local library without administrator rights.
+After building the portable app, run `python build_installer.py`. The result is **release/installer/OrbitLegacySetup.exe**, a single-file native Windows installer. Its animated setup screen lets users choose an install folder and optional Desktop and Start-menu shortcuts. The default location remains `%LOCALAPPDATA%\Programs\Orbit` so existing installs upgrade in place and retain their local library without administrator rights.
 
 Installing over an existing copy is a safe upgrade: the installer stages the new build first, carries forward `data` and `assets`, and restores the previous installation if activation fails. Close Orbit before upgrading so Windows does not lock application files. The installer payload deliberately excludes the developer's personal library and copied Steam artwork.
 

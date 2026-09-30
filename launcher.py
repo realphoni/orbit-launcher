@@ -330,11 +330,11 @@ def main():
         def javaScriptConsoleMessage(self, level, message, line, source):
             with (DATA / 'startup.log').open('a', encoding='utf-8') as log:
                 log.write(f'JS {line}: {message}\n')
-    app.setApplicationName('Orbit • Game Launcher')
+    app.setApplicationName('Orbit Legacy • Game Launcher')
     app.setWindowIcon(QIcon(str(BASE / 'orbit.ico')))
     view = QWebEngineView()
     view.setPage(Page(view))
-    view.setWindowTitle('Orbit • Game Launcher')
+    view.setWindowTitle('Orbit Legacy • Game Launcher')
     view.resize(1440, 900)
     bridge = Bridge()
     channel = QWebChannel()

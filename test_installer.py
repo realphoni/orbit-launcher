@@ -1,9 +1,14 @@
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 import unittest
+from unittest.mock import Mock, patch
 
 from build_installer import create_splash
-from installer import InstallWorker, human_size, validate_install_directory, validate_payload
+from installer import (
+    InstallWorker, close_packaging_splash, human_size, validate_install_directory,
+    validate_payload,
+)
 
 
 class InstallerTests(unittest.TestCase):
@@ -56,6 +61,13 @@ class InstallerTests(unittest.TestCase):
             from PIL import Image
             with Image.open(output) as image:
                 self.assertEqual(image.size, (560, 300))
+
+    def test_packaging_splash_closes_when_installer_is_ready(self):
+        close = Mock()
+        splash = SimpleNamespace(is_alive=lambda: True, close=close)
+        with patch.dict("sys.modules", {"pyi_splash": splash}):
+            close_packaging_splash()
+        close.assert_called_once_with()
 
 
 if __name__ == "__main__":

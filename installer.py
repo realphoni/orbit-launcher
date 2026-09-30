@@ -1,4 +1,4 @@
-"""Native Windows installer for the Orbit game launcher.
+"""Native Windows installer for the Orbit Legacy game launcher.
 
 Run this file during development after ``build.py``. The packaged installer
 embeds the same ``release/Orbit`` payload under ``payload/Orbit``.
@@ -24,7 +24,9 @@ from PySide6.QtWidgets import (
 )
 
 
-APP_NAME = "Orbit"
+PRODUCT_NAME = "Orbit Legacy"
+APP_DIRECTORY_NAME = "Orbit"
+EXECUTABLE_NAME = "Orbit.exe"
 ROOT = Path(__file__).resolve().parent
 PRESERVED_FOLDERS = ("data", "assets")
 
@@ -34,21 +36,38 @@ def bundle_root() -> Path:
 
 
 def payload_directory() -> Path:
-    embedded = bundle_root() / "payload" / APP_NAME
-    return embedded if embedded.exists() else ROOT / "release" / APP_NAME
+    embedded = bundle_root() / "payload" / APP_DIRECTORY_NAME
+    return embedded if embedded.exists() else ROOT / "release" / APP_DIRECTORY_NAME
 
 
 def default_install_directory() -> Path:
     local_data = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
-    return local_data / "Programs" / APP_NAME
+    # Keep the original folder so Orbit installs upgrade in place and retain data.
+    return local_data / "Programs" / APP_DIRECTORY_NAME
 
 
 def validate_payload(payload: Path) -> None:
-    if not (payload / "Orbit.exe").is_file() or not (payload / "_internal").is_dir():
+    if not (payload / EXECUTABLE_NAME).is_file() or not (payload / "_internal").is_dir():
         raise FileNotFoundError(
-            "The Orbit app payload is missing. Run build.py before the source installer, "
-            "or rebuild OrbitSetup.exe."
+            "The Orbit Legacy app payload is missing. Run build.py before the source installer, "
+            "or rebuild OrbitLegacySetup.exe."
         )
+
+
+def packaging_splash_is_alive() -> bool:
+    """Report whether the optional PyInstaller extraction splash is visible."""
+    try:
+        import pyi_splash
+    except ImportError:
+        return False
+    return pyi_splash.is_alive()
+
+
+def close_packaging_splash() -> None:
+    """Close PyInstaller's extraction splash once the Qt window has rendered."""
+    if packaging_splash_is_alive():
+        import pyi_splash
+        pyi_splash.close()
 
 
 def validate_install_directory(path: Path) -> Path:
@@ -84,7 +103,7 @@ def create_shortcut(shortcut: Path, executable: Path) -> None:
         "$s.TargetPath=$env:ORBIT_EXE;"
         "$s.WorkingDirectory=$env:ORBIT_DIR;"
         "$s.IconLocation=$env:ORBIT_EXE+',0';"
-        "$s.Description='Open Orbit Game Launcher';$s.Save()"
+        "$s.Description='Open Orbit Legacy Game Launcher';$s.Save()"
     )
     subprocess.run(
         ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
@@ -114,8 +133,8 @@ class InstallWorker(QThread):
             self._preserve_library(stage)
             self._activate(stage, backup)
             self._create_shortcuts()
-            self.progress_changed.emit(100, "Orbit is ready for launch")
-            self.succeeded.emit(str(self.target / "Orbit.exe"))
+            self.progress_changed.emit(100, "Orbit Legacy is ready for launch")
+            self.succeeded.emit(str(self.target / EXECUTABLE_NAME))
         except Exception as error:
             self._recover(stage, backup)
             self.failed.emit(str(error))
@@ -143,7 +162,7 @@ class InstallWorker(QThread):
                 shutil.copytree(current, stage / name, dirs_exist_ok=True)
 
     def _activate(self, stage: Path, backup: Path) -> None:
-        self.progress_changed.emit(92, "Sliding Orbit into place")
+        self.progress_changed.emit(92, "Sliding Orbit Legacy into place")
         self.target.parent.mkdir(parents=True, exist_ok=True)
         if self.target.exists():
             self.target.replace(backup)
@@ -153,12 +172,12 @@ class InstallWorker(QThread):
 
     def _create_shortcuts(self) -> None:
         self.progress_changed.emit(97, "Finishing the Windows experience")
-        executable = self.target / "Orbit.exe"
+        executable = self.target / EXECUTABLE_NAME
         if self.desktop:
-            create_shortcut(Path.home() / "Desktop" / "Orbit.lnk", executable)
+            create_shortcut(Path.home() / "Desktop" / f"{PRODUCT_NAME}.lnk", executable)
         if self.start_menu:
             app_data = Path(os.environ["APPDATA"])
-            create_shortcut(app_data / "Microsoft/Windows/Start Menu/Programs/Orbit.lnk", executable)
+            create_shortcut(app_data / f"Microsoft/Windows/Start Menu/Programs/{PRODUCT_NAME}.lnk", executable)
 
     def _recover(self, stage: Path, backup: Path) -> None:
         if stage.exists():
@@ -219,7 +238,7 @@ class InstallerWindow(QMainWindow):
         self.payload = payload_directory()
         self.worker: InstallWorker | None = None
         self.installed_executable: Path | None = None
-        self.setWindowTitle("Orbit Setup")
+        self.setWindowTitle(f"{PRODUCT_NAME} Setup")
         self.setWindowIcon(QIcon(str(bundle_root() / "orbit.ico")))
         self.setFixedSize(840, 570)
         self.setObjectName("window")
@@ -255,6 +274,9 @@ class InstallerWindow(QMainWindow):
         name = QLabel("O R B I T", objectName="brandName")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(name)
+        edition = QLabel("L E G A C Y", objectName="editionName")
+        edition.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(edition)
         tagline = QLabel("YOUR GAMES.\nONE BEAUTIFUL PLACE.", objectName="tagline")
         tagline.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(tagline)
@@ -273,7 +295,7 @@ class InstallerWindow(QMainWindow):
         return page, layout
 
     def _welcome_page(self) -> QWidget:
-        page, layout = self._page("Ready for liftoff?", "Set up Orbit in a few smooth seconds.")
+        page, layout = self._page("Ready for liftoff?", "Set up Orbit Legacy in a few smooth seconds.")
         layout.addWidget(QLabel("INSTALL LOCATION", objectName="fieldLabel"))
         path_row = QHBoxLayout()
         self.path_edit = QLineEdit(str(default_install_directory()), objectName="pathEdit")
@@ -290,19 +312,19 @@ class InstallerWindow(QMainWindow):
         layout.addSpacing(8)
         self.desktop_shortcut = QCheckBox("Add a desktop shortcut")
         self.desktop_shortcut.setChecked(True)
-        self.start_shortcut = QCheckBox("Add Orbit to the Start menu")
+        self.start_shortcut = QCheckBox("Add Orbit Legacy to the Start menu")
         self.start_shortcut.setChecked(True)
         layout.addWidget(self.desktop_shortcut)
         layout.addWidget(self.start_shortcut)
         layout.addStretch()
-        self.install_button = QPushButton("Install Orbit  →", objectName="primaryButton")
+        self.install_button = QPushButton("Install Orbit Legacy  →", objectName="primaryButton")
         self.install_button.setMinimumHeight(52)
         self.install_button.clicked.connect(self._start_install)
         layout.addWidget(self.install_button)
         return page
 
     def _progress_page(self) -> QWidget:
-        page, layout = self._page("Making it yours", "Orbit is settling into Windows.")
+        page, layout = self._page("Making it yours", "Orbit Legacy is settling into Windows.")
         layout.addStretch()
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
@@ -319,7 +341,7 @@ class InstallerWindow(QMainWindow):
         return page
 
     def _finish_page(self) -> QWidget:
-        page, layout = self._page("That was silky.", "Orbit is installed and ready to play.")
+        page, layout = self._page("That was silky.", "Orbit Legacy is installed and ready to play.")
         layout.addStretch()
         badge = QLabel("✓", objectName="successBadge")
         badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -329,7 +351,7 @@ class InstallerWindow(QMainWindow):
         self.finish_path.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.finish_path.setWordWrap(True)
         layout.addWidget(self.finish_path)
-        self.launch_after = QCheckBox("Launch Orbit now")
+        self.launch_after = QCheckBox("Launch Orbit Legacy now")
         self.launch_after.setChecked(True)
         layout.addWidget(self.launch_after, alignment=Qt.AlignmentFlag.AlignHCenter)
         layout.addStretch()
@@ -340,16 +362,16 @@ class InstallerWindow(QMainWindow):
         return page
 
     def _browse(self) -> None:
-        folder = QFileDialog.getExistingDirectory(self, "Choose where Orbit should live", self.path_edit.text())
+        folder = QFileDialog.getExistingDirectory(self, "Choose where Orbit Legacy should live", self.path_edit.text())
         if folder:
-            self.path_edit.setText(str(Path(folder) / APP_NAME))
+            self.path_edit.setText(str(Path(folder) / APP_DIRECTORY_NAME))
 
     def _start_install(self) -> None:
         try:
             validate_payload(self.payload)
             destination = validate_install_directory(Path(self.path_edit.text()))
         except (FileNotFoundError, ValueError) as error:
-            QMessageBox.warning(self, "Orbit needs a little help", str(error))
+            QMessageBox.warning(self, "Orbit Legacy needs a little help", str(error))
             return
         self.pages.setCurrentIndex(1)
         self.install_button.setEnabled(False)
@@ -375,8 +397,8 @@ class InstallerWindow(QMainWindow):
         self.pages.setCurrentIndex(0)
         self.install_button.setEnabled(True)
         QMessageBox.critical(
-            self, "Orbit could not be installed",
-            message + "\n\nIf Orbit is open, close it and try again. Your previous installation was preserved.",
+            self, "Orbit Legacy could not be installed",
+            message + "\n\nIf Orbit Legacy is open, close it and try again. Your previous installation was preserved.",
         )
 
     def _finish(self) -> None:
@@ -384,7 +406,7 @@ class InstallerWindow(QMainWindow):
             try:
                 subprocess.Popen([str(self.installed_executable)], cwd=self.installed_executable.parent)
             except OSError as error:
-                QMessageBox.warning(self, "Orbit is installed", f"Orbit could not be opened:\n{error}")
+                QMessageBox.warning(self, "Orbit Legacy is installed", f"Orbit Legacy could not be opened:\n{error}")
         QApplication.quit()
 
     @staticmethod
@@ -406,6 +428,7 @@ QFrame#brandPanel { background: qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #1728
 QStackedWidget#pages { background:#111927; border-top-right-radius:22px; border-bottom-right-radius:22px; }
 QLabel { color:#f6f8ff; font-family:"Segoe UI"; }
 QLabel#brandName { font-size:24px; font-weight:800; letter-spacing:6px; }
+QLabel#editionName { color:#91a0b7; font-size:9px; font-weight:700; letter-spacing:4px; }
 QLabel#tagline { color:#b8f575; font-size:11px; font-weight:700; letter-spacing:2px; }
 QLabel#featureList { color:#9cabbe; font-size:12px; }
 QLabel#heading { font-size:31px; font-weight:750; }
@@ -434,19 +457,22 @@ QProgressBar::chunk { background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #6db
 def main() -> int:
     if os.name == "nt":
         try:
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Phoni.Orbit.Installer")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Phoni.OrbitLegacy.Installer")
         except (AttributeError, OSError):
             pass
     app = QApplication(sys.argv)
-    app.setApplicationName("Orbit Setup")
+    app.setApplicationName(f"{PRODUCT_NAME} Setup")
     app.setFont(QFont("Segoe UI", 10))
     window = InstallerWindow()
     window.show()
+    # Force the first Qt paint before removing PyInstaller's extraction splash.
+    app.processEvents()
+    close_packaging_splash()
     if "--smoke-test" in sys.argv:
         def capture_and_exit() -> None:
             output = Path(sys.executable).resolve().parent / "installer-smoke.png"
             window.grab().save(str(output))
-            app.exit(0)
+            app.exit(2 if packaging_splash_is_alive() else 0)
 
         QTimer.singleShot(1200, capture_and_exit)
     return app.exec()

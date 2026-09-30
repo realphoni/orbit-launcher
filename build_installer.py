@@ -1,4 +1,4 @@
-"""Build a self-contained OrbitSetup.exe with the portable app embedded."""
+"""Build a self-contained Orbit Legacy installer with the portable app embedded."""
 
 from pathlib import Path
 import shutil
@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parent
 SOURCE_APP = ROOT / "release" / "Orbit"
 OUTPUT_DIRECTORY = ROOT / "release" / "installer"
 PRIVATE_PAYLOAD_FOLDERS = {"data", "assets"}
+INSTALLER_NAME = "OrbitLegacySetup"
 
 
 def copy_clean_payload(destination: Path) -> None:
@@ -39,7 +40,8 @@ def create_splash(path: Path) -> None:
         tiny_font = ImageFont.truetype("C:/Windows/Fonts/segoeui.ttf", 13)
     except OSError:
         title_font = copy_font = tiny_font = ImageFont.load_default()
-    painter.text((235, 76), "O R B I T", font=title_font, fill="#f7faff")
+    painter.text((235, 61), "O R B I T", font=title_font, fill="#f7faff")
+    painter.text((238, 108), "L E G A C Y", font=tiny_font, fill="#91a0b7")
     painter.text((237, 132), "Preparing a beautiful setup…", font=copy_font, fill="#b8f575")
     painter.text((237, 165), "Unpacking the launcher and its runtime", font=tiny_font, fill="#91a0b7")
     painter.rounded_rectangle((55, 235, 505, 243), radius=4, fill="#243246")
@@ -82,7 +84,7 @@ exe = EXE(
     splash,
     splash.binaries,
     [],
-    name="OrbitSetup",
+    name={INSTALLER_NAME!r},
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -101,7 +103,7 @@ def build() -> Path:
         temporary_path = Path(temporary)
         payload = temporary_path / "payload"
         splash = temporary_path / "splash.png"
-        spec = temporary_path / "OrbitSetup.spec"
+        spec = temporary_path / f"{INSTALLER_NAME}.spec"
         copy_clean_payload(payload)
         create_splash(splash)
         write_spec(spec, payload, splash)
@@ -110,7 +112,7 @@ def build() -> Path:
             "--distpath", str(OUTPUT_DIRECTORY), str(spec),
         ]
         subprocess.run(command, cwd=ROOT, check=True)
-    output = OUTPUT_DIRECTORY / "OrbitSetup.exe"
+    output = OUTPUT_DIRECTORY / f"{INSTALLER_NAME}.exe"
     print(f"Installer built at {output}")
     return output
 
