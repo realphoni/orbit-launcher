@@ -8,6 +8,12 @@ On Windows with Python 3.10 or newer, install dependencies with `python -m pip i
 
 To build a standalone Windows app, run `python -m pip install -r requirements-build.txt`, then `python build.py`. Open **release/Orbit/Orbit.exe**. The built app does not require Python to be installed. Keep the entire `release/Orbit` folder together: `_internal` contains its runtime. Settings and copied artwork are saved alongside the executable, so use a writable folder. Existing local installations may live at **dist/Orbit/Orbit.exe**.
 
+## Installer
+
+After building the portable app, run `python build_installer.py`. The result is **release/installer/OrbitSetup.exe**, a single-file native Windows installer. Its animated setup screen lets users choose an install folder and optional Desktop and Start-menu shortcuts. The default location is `%LOCALAPPDATA%\Programs\Orbit`, so Orbit can save its local library without administrator rights.
+
+Installing over an existing copy is a safe upgrade: the installer stages the new build first, carries forward `data` and `assets`, and restores the previous installation if activation fails. Close Orbit before upgrading so Windows does not lock application files. The installer payload deliberately excludes the developer's personal library and copied Steam artwork.
+
 Builds are staged under `release/Orbit`, so building never deletes the live app's settings or artwork. After testing, close Orbit and copy the staged executable and `_internal` contents into `dist/Orbit`, preserving `data` and `assets`.
 
 ## Game details and library organization

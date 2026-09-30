@@ -8,11 +8,13 @@
 /build/
 /dist/
 /release/
+/installer-build/
 *.spec
 *.lnk
 
 # Local screenshots may contain personal library information
 /*preview.png
+/installer-preview.png
 
 # Python environments and caches
 __pycache__/
